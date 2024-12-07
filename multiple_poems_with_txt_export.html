@@ -1,0 +1,212 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gedichte-Plattform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button, select {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        .poem {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .closed {
+            color: red;
+            font-weight: bold;
+        }
+        .poem-list {
+            margin-top: 20px;
+        }
+        .poem-list button {
+            margin-top: 5px;
+            background-color: #007bff;
+        }
+        .poem-list button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gedichte-Plattform</h1>
+
+        <div id="create-poem-section">
+            <div class="form-group">
+                <label for="poemTitle">Titel des Gedichts</label>
+                <input type="text" id="poemTitle" placeholder="Gib den Titel des Gedichts ein">
+            </div>
+            <button onclick="createNewPoem()">Neues Gedicht erstellen</button>
+        </div>
+
+        <div id="form-container" class="hidden">
+            <h2 id="currentPoemTitle"></h2>
+            <div class="form-group">
+                <label for="zeile">Deine Gedichtszeile</label>
+                <input type="text" id="zeile" placeholder="Gib hier deine Zeile ein">
+            </div>
+            <div class="form-group">
+                <label for="autor">Dein Name</label>
+                <input type="text" id="autor" placeholder="Dein Name">
+            </div>
+            <button onclick="addLine()">Zeile hinzufügen</button>
+            <button onclick="finishPoem()">Gedicht abschließen</button>
+        </div>
+
+        <div class="poem" id="poem"></div>
+        <p id="status" class="closed hidden">Das Gedicht ist abgeschlossen!</p>
+
+        <div class="poem-list" id="poemList"></div>
+
+        <button onclick="exportPoems()" id="exportButton">Alle Gedichte als TXT exportieren</button>
+    </div>
+
+    <script>
+        let poems = JSON.parse(localStorage.getItem('poems')) || [];
+        let currentPoemIndex = null;
+        const maxLines = 8;
+
+        function displayPoem() {
+            const poemDiv = document.getElementById('poem');
+            poemDiv.innerHTML = '';
+            if (currentPoemIndex === null) return;
+            const currentPoem = poems[currentPoemIndex];
+            currentPoem.lines.forEach(line => {
+                poemDiv.innerHTML += `<p><strong>${line.autor}:</strong> ${line.text}</p>`;
+            });
+            document.getElementById('currentPoemTitle').innerText = currentPoem.title;
+        }
+
+        function createNewPoem() {
+            const title = document.getElementById('poemTitle').value.trim();
+            if (title === '') {
+                alert('Bitte gib einen Titel für das Gedicht ein.');
+                return;
+            }
+            poems.push({ title: title, lines: [] });
+            currentPoemIndex = poems.length - 1;
+            localStorage.setItem('poems', JSON.stringify(poems));
+            document.getElementById('form-container').classList.remove('hidden');
+            document.getElementById('create-poem-section').classList.add('hidden');
+            displayPoem();
+            updatePoemList();
+        }
+
+        function addLine() {
+            const zeile = document.getElementById('zeile').value.trim();
+            const autor = document.getElementById('autor').value.trim();
+
+            if (zeile === '' || autor === '') {
+                alert('Bitte gib sowohl eine Zeile als auch deinen Namen ein.');
+                return;
+            }
+
+            if (currentPoemIndex !== null && poems[currentPoemIndex].lines.length < maxLines) {
+                poems[currentPoemIndex].lines.push({ text: zeile, autor: autor });
+                localStorage.setItem('poems', JSON.stringify(poems));
+                displayPoem();
+                document.getElementById('zeile').value = '';
+                document.getElementById('autor').value = '';
+            }
+            checkIfFinished();
+        }
+
+        function checkIfFinished() {
+            if (poems[currentPoemIndex].lines.length >= maxLines) {
+                document.getElementById('form-container').classList.add('hidden');
+                document.getElementById('status').classList.remove('hidden');
+            }
+        }
+
+        function finishPoem() {
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('status').classList.remove('hidden');
+            document.getElementById('create-poem-section').classList.remove('hidden');
+            currentPoemIndex = null;
+            displayPoem();
+            updatePoemList();
+        }
+
+        function updatePoemList() {
+            const poemListDiv = document.getElementById('poemList');
+            poemListDiv.innerHTML = '<h3>Gespeicherte Gedichte</h3>';
+            poems.forEach((poem, index) => {
+                poemListDiv.innerHTML += `<button onclick="selectPoem(${index})">${poem.title}</button>`;
+            });
+        }
+
+        function selectPoem(index) {
+            currentPoemIndex = index;
+            document.getElementById('form-container').classList.remove('hidden');
+            document.getElementById('create-poem-section').classList.add('hidden');
+            document.getElementById('status').classList.add('hidden');
+            displayPoem();
+        }
+
+        function exportPoems() {
+            let content = '';
+            poems.forEach(poem => {
+                content += poem.title + "\n";
+                content += "-".repeat(poem.title.length) + "\n";
+                poem.lines.forEach(line => {
+                    content += line.autor + ": " + line.text + "\n";
+                });
+                content += "\n";
+            });
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gedichte_export.txt';
+            a.click();
+        }
+
+        updatePoemList();
+    </script>
+</body>
+</html>
