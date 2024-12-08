@@ -64,31 +64,48 @@
             background: #e9ecef;
             border-radius: 4px;
         }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Gedichte-Plattform</h1>
 
-        <div class="form-group">
-            <input type="text" id="title" placeholder="Titel des Gedichts">
+        <div id="create-poem-section">
+            <div class="form-group">
+                <label for="poemTitle">Titel des Gedichts</label>
+                <input type="text" id="poemTitle" placeholder="Gib den Titel des Gedichts ein">
+            </div>
+            <button onclick="createNewPoem()">Neues Gedicht erstellen</button>
         </div>
-        <div class="form-group">
-            <input type="text" id="line" placeholder="Gib eine Zeile ein">
-        </div>
-        <div class="form-group">
-            <input type="text" id="author" placeholder="Dein Name">
-        </div>
-        <button onclick="addPoem()">Gedicht hinzufügen</button>
-        <button onclick="loadPoems()">Gedichte laden</button>
 
-        <div class="poem-list" id="poemList"></div>
+        <div id="form-container" class="hidden">
+            <h2 id="currentPoemTitle"></h2>
+            <div class="form-group">
+                <label for="zeile">Deine Gedichtszeile</label>
+                <input type="text" id="zeile" placeholder="Gib hier deine Zeile ein">
+            </div>
+            <div class="form-group">
+                <label for="autor">Dein Name</label>
+                <input type="text" id="autor" placeholder="Dein Name">
+            </div>
+            <button onclick="addLine()">Zeile hinzufügen</button>
+            <button class="delete-button" onclick="finishPoem()">Gedicht abschließen</button>
+        </div>
+
+        <div id="poem" class="poem"></div>
+        <div id="poemList" class="poem-list"></div>
+
+        <button onclick="exportPoems()">Gedichte als TXT exportieren</button>
     </div>
 
     <script>
         const API_KEY = '$2a$10$aDn6R0chjz2qLH39VbVUCOzcFGMUYb0KzfVDa3yQPQHyyD4I8C0My';
         const BIN_ID = '6755871be41b4d34e461d8b7';
         const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+        let poems = [];
 
         async function loadPoems() {
             try {
@@ -96,69 +113,62 @@
                     headers: { 'X-Master-Key': API_KEY }
                 });
                 const data = await response.json();
-                displayPoems(data.record);
+                poems = data.record;
+                displayPoemList();
             } catch (error) {
                 console.error('Fehler beim Laden der Gedichte:', error);
             }
         }
 
-        function displayPoems(poems) {
-            const poemListDiv = document.getElementById('poemList');
-            poemListDiv.innerHTML = '';
-            poems.forEach((poem, index) => {
-                poemListDiv.innerHTML += `
-                    <div class="poem">
-                        <p><strong>${poem.title}</strong></p>
-                        <p>${poem.line} - <em>${poem.author}</em></p>
-                        <button class="delete-button" onclick="deletePoem(${index})">Löschen</button>
-                    </div>
-                `;
-            });
-        }
-
-        async function addPoem() {
-            const title = document.getElementById('title').value;
-            const line = document.getElementById('line').value;
-            const author = document.getElementById('author').value;
-
-            if (!title || !line || !author) {
-                alert('Bitte fülle alle Felder aus.');
+        function createNewPoem() {
+            const title = document.getElementById('poemTitle').value;
+            if (!title) {
+                alert('Bitte gib einen Titel ein.');
                 return;
             }
-
-            const newPoem = { title, line, author };
-
-            try {
-                const response = await fetch(BASE_URL, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': API_KEY
-                    },
-                    body: JSON.stringify([newPoem])
-                });
-
-                if (response.ok) {
-                    alert('Gedicht erfolgreich hinzugefügt!');
-                    loadPoems();
-                }
-            } catch (error) {
-                console.error('Fehler beim Hinzufügen des Gedichts:', error);
-            }
+            poems.push({ title, lines: [] });
+            document.getElementById('create-poem-section').classList.add('hidden');
+            document.getElementById('form-container').classList.remove('hidden');
+            document.getElementById('currentPoemTitle').innerText = title;
         }
 
-        async function deletePoem(index) {
+        function addLine() {
+            const zeile = document.getElementById('zeile').value;
+            const autor = document.getElementById('autor').value;
+            if (!zeile || !autor) {
+                alert('Bitte gib sowohl eine Zeile als auch einen Namen ein.');
+                return;
+            }
+            const currentPoem = poems[poems.length - 1];
+            currentPoem.lines.push({ text: zeile, author: autor });
+            displayPoem();
+        }
+
+        function displayPoem() {
+            const poemDiv = document.getElementById('poem');
+            const currentPoem = poems[poems.length - 1];
+            poemDiv.innerHTML = currentPoem.lines.map(line => `<p><strong>${line.author}:</strong> ${line.text}</p>`).join('');
+        }
+
+        async function finishPoem() {
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('create-poem-section').classList.remove('hidden');
+            await savePoems();
+            displayPoemList();
+        }
+
+        function displayPoemList() {
+            const poemListDiv = document.getElementById('poemList');
+            poemListDiv.innerHTML = poems.map((poem, index) => `
+                <div class="poem">
+                    <h3>${poem.title}</h3>
+                    ${poem.lines.map(line => `<p><strong>${line.author}:</strong> ${line.text}</p>`).join('')}
+                </div>
+            `).join('');
+        }
+
+        async function savePoems() {
             try {
-                if (!confirm('Möchtest du dieses Gedicht wirklich löschen?')) return;
-
-                const response = await fetch(BASE_URL, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                const data = await response.json();
-                const poems = data.record;
-
-                poems.splice(index, 1);
-
                 await fetch(BASE_URL, {
                     method: 'PUT',
                     headers: {
@@ -167,12 +177,26 @@
                     },
                     body: JSON.stringify(poems)
                 });
-
-                alert('Gedicht gelöscht!');
-                loadPoems();
             } catch (error) {
-                console.error('Fehler beim Löschen des Gedichts:', error);
+                console.error('Fehler beim Speichern der Gedichte:', error);
             }
+        }
+
+        function exportPoems() {
+            let content = poems.map(poem => {
+                let poemText = `Titel: ${poem.title}\n`;
+                poem.lines.forEach(line => {
+                    poemText += `${line.author}: ${line.text}\n`;
+                });
+                return poemText;
+            }).join('\n');
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gedichte.txt';
+            a.click();
         }
 
         loadPoems();
