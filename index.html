@@ -32,7 +32,7 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input, button, select {
+        input, button {
             width: 100%;
             padding: 10px;
             font-size: 1rem;
@@ -41,13 +41,13 @@
             margin-bottom: 10px;
         }
         button {
-            background-color: #5cb85c;
+            background-color: #3498db;
             color: white;
             cursor: pointer;
             border: none;
         }
         button:hover {
-            background-color: #4cae4c;
+            background-color: #2980b9;
         }
         .poem {
             margin-top: 20px;
@@ -55,19 +55,31 @@
             background: #e9ecef;
             border-radius: 4px;
         }
-        .closed {
-            color: red;
-            font-weight: bold;
-        }
         .poem-list {
             margin-top: 20px;
         }
-        .poem-list button {
-            margin-top: 5px;
-            background-color: #007bff;
+        .poem-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }
-        .poem-list button:hover {
-            background-color: #0056b3;
+        .delete-button {
+            background-color: #e74c3c;
+            width: auto;
+            padding: 5px 10px;
+        }
+        .delete-button:hover {
+            background-color: #c0392b;
+        }
+        .finalize-button {
+            background-color: #f39c12;
+        }
+        .finalize-button:hover {
+            background-color: #e67e22;
+        }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
@@ -94,11 +106,12 @@
                 <input type="text" id="autor" placeholder="Dein Name">
             </div>
             <button onclick="addLine()">Zeile hinzufügen</button>
+            <button class="finalize-button" onclick="finalizePoem()">Gedicht endgültig schließen</button>
             <button onclick="finishPoem()">Gedicht abschließen</button>
         </div>
 
         <div class="poem" id="poem"></div>
-        <p id="status" class="closed hidden">Das Gedicht ist abgeschlossen!</p>
+        <p id="status" class="hidden">Das Gedicht ist abgeschlossen!</p>
 
         <div class="poem-list" id="poemList"></div>
 
@@ -127,7 +140,7 @@
                 alert('Bitte gib einen Titel für das Gedicht ein.');
                 return;
             }
-            poems.push({ title: title, lines: [] });
+            poems.push({ title: title, lines: [], finalized: false });
             currentPoemIndex = poems.length - 1;
             localStorage.setItem('poems', JSON.stringify(poems));
             document.getElementById('form-container').classList.remove('hidden');
@@ -152,30 +165,43 @@
                 document.getElementById('zeile').value = '';
                 document.getElementById('autor').value = '';
             }
-            checkIfFinished();
-        }
-
-        function checkIfFinished() {
-            if (poems[currentPoemIndex].lines.length >= maxLines) {
-                document.getElementById('form-container').classList.add('hidden');
-                document.getElementById('status').classList.remove('hidden');
-            }
         }
 
         function finishPoem() {
             document.getElementById('form-container').classList.add('hidden');
-            document.getElementById('status').classList.remove('hidden');
             document.getElementById('create-poem-section').classList.remove('hidden');
             currentPoemIndex = null;
-            displayPoem();
             updatePoemList();
+        }
+
+        function finalizePoem() {
+            if (currentPoemIndex !== null) {
+                poems[currentPoemIndex].finalized = true;
+                localStorage.setItem('poems', JSON.stringify(poems));
+                alert('Das Gedicht wurde endgültig geschlossen und kann nicht mehr bearbeitet werden.');
+                finishPoem();
+            }
+        }
+
+        function deletePoem(index) {
+            if (confirm('Möchtest du dieses Gedicht wirklich löschen?')) {
+                poems.splice(index, 1);
+                localStorage.setItem('poems', JSON.stringify(poems));
+                updatePoemList();
+                finishPoem();
+            }
         }
 
         function updatePoemList() {
             const poemListDiv = document.getElementById('poemList');
             poemListDiv.innerHTML = '<h3>Gespeicherte Gedichte</h3>';
             poems.forEach((poem, index) => {
-                poemListDiv.innerHTML += `<button onclick="selectPoem(${index})">${poem.title}</button>`;
+                poemListDiv.innerHTML += `
+                    <div class="poem-list-item">
+                        <button onclick="selectPoem(${index})">${poem.title}</button>
+                        <button class="delete-button" onclick="deletePoem(${index})">Löschen</button>
+                    </div>
+                `;
             });
         }
 
@@ -183,8 +209,14 @@
             currentPoemIndex = index;
             document.getElementById('form-container').classList.remove('hidden');
             document.getElementById('create-poem-section').classList.add('hidden');
-            document.getElementById('status').classList.add('hidden');
             displayPoem();
+            if (poems[index].finalized) {
+                document.getElementById('zeile').disabled = true;
+                document.getElementById('autor').disabled = true;
+            } else {
+                document.getElementById('zeile').disabled = false;
+                document.getElementById('autor').disabled = false;
+            }
         }
 
         function exportPoems() {
@@ -199,7 +231,7 @@
             });
 
             const blob = new Blob([content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'gedichte_export.txt';
