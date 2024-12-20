@@ -103,39 +103,8 @@
     </div>
 
     <script>
-        const API_KEY = '$2a$10$aDn6R0chjz2qLH39VbVUCOzcFGMUYb0KzfVDa3yQPQHyyD4I8C0My';
-        const BIN_ID = '675586a2acd3cb34a8b611cd';
-        const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
         let poems = [];
         let currentPoemIndex = null;
-
-        async function loadPoems() {
-            try {
-                const response = await fetch(BASE_URL, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                const data = await response.json();
-                poems = data.record;
-                displayPoems();
-            } catch (error) {
-                console.error('Fehler beim Laden der Gedichte:', error);
-            }
-        }
-
-        async function savePoems() {
-            try {
-                await fetch(BASE_URL, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': API_KEY
-                    },
-                    body: JSON.stringify(poems)
-                });
-            } catch (error) {
-                console.error('Fehler beim Speichern der Gedichte:', error);
-            }
-        }
 
         function startNewPoem() {
             const title = document.getElementById('poemTitle').value.trim();
@@ -148,7 +117,6 @@
             document.getElementById('currentPoemTitle').innerText = title;
             document.getElementById('poem-form').classList.add('hidden');
             document.getElementById('poem-editor').classList.remove('hidden');
-            savePoems();
         }
 
         function addLine() {
@@ -162,7 +130,6 @@
             document.getElementById('poemLine').value = '';
             document.getElementById('poemAuthor').value = '';
             displayPoems();
-            savePoems();
         }
 
         function pausePoem() {
@@ -174,13 +141,11 @@
         function finishPoem(index) {
             poems[index].completed = true;
             displayPoems();
-            savePoems();
         }
 
         function deletePoem(index) {
             poems.splice(index, 1);
             displayPoems();
-            savePoems();
         }
 
         function displayPoems() {
@@ -202,25 +167,9 @@
             });
         }
 
-        function editPoem(index) {
-            currentPoemIndex = index;
-            document.getElementById('currentPoemTitle').innerText = poems[index].title;
-            document.getElementById('poem-form').classList.add('hidden');
-            document.getElementById('poem-editor').classList.remove('hidden');
-        }
-
         function exportPoems() {
             const completedPoems = poems.filter(poem => poem.completed);
-            if (completedPoems.length === 0) {
-                alert('Keine abgeschlossenen Gedichte zum Exportieren vorhanden.');
-                return;
-            }
-                        let content = completedPoems.map(poem => {
-                return `Titel: ${poem.title}\n` + 
-                       poem.lines.map(line => `${line.author}: ${line.text}`).join('\n') + 
-                       '\n\n';
-            }).join('');
-
+            let content = completedPoems.map(poem => `Titel: ${poem.title}\n${poem.lines.map(line => `${line.author}: ${line.text}`).join('\n')}\n\n`).join('');
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -229,10 +178,8 @@
             a.click();
             URL.revokeObjectURL(url);
         }
-
-        // Lade die Gedichte beim Start der Anwendung
-        loadPoems();
     </script>
 </body>
 </html>
+
 
