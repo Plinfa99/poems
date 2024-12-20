@@ -50,11 +50,15 @@
         }
         .delete-button {
             background-color: #e74c3c;
-            padding: 5px 10px;
-            width: auto;
         }
         .delete-button:hover {
             background-color: #c0392b;
+        }
+        .complete-button {
+            background-color: #2ecc71;
+        }
+        .complete-button:hover {
+            background-color: #27ae60;
         }
         .poem-entry {
             padding: 10px;
@@ -86,7 +90,7 @@
                 <input type="text" id="poemLine" placeholder="Gib eine Zeile ein">
             </div>
             <button onclick="addLine()">Zeile hinzufügen</button>
-            <button class="delete-button" onclick="finishPoem()">Gedicht abschließen</button>
+            <button onclick="pausePoem()">Gedicht pausieren</button>
         </div>
 
         <h2>Gedichte:</h2>
@@ -122,10 +126,19 @@
             displayPoems();
         }
 
-        function finishPoem() {
-            poems[currentPoemIndex].completed = true;
+        function pausePoem() {
             document.getElementById('poem-editor').classList.add('hidden');
             document.getElementById('poem-form').classList.remove('hidden');
+            displayPoems();
+        }
+
+        function finishPoem(index) {
+            poems[index].completed = true;
+            displayPoems();
+        }
+
+        function deletePoem(index) {
+            poems.splice(index, 1);
             displayPoems();
         }
 
@@ -138,7 +151,11 @@
                 poemDiv.innerHTML = `
                     <h3>${poem.title} ${poem.completed ? '<span style="color: green;">(Abgeschlossen)</span>' : ''}</h3>
                     <p>${poem.lines.join('<br>')}</p>
-                    ${!poem.completed ? `<button onclick="editPoem(${index})">Weiter bearbeiten</button>` : ''}
+                    ${!poem.completed ? `
+                        <button onclick="editPoem(${index})">Weiter bearbeiten</button>
+                        <button class="delete-button" onclick="deletePoem(${index})">Gedicht löschen</button>
+                        <button class="complete-button" onclick="finishPoem(${index})">Gedicht abschließen</button>
+                    ` : ''}
                 `;
                 poemListDiv.appendChild(poemDiv);
             });
@@ -168,4 +185,3 @@
     </script>
 </body>
 </html>
-
