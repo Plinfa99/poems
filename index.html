@@ -89,6 +89,10 @@
                 <label for="poemLine">Zeile hinzufügen:</label>
                 <input type="text" id="poemLine" placeholder="Gib eine Zeile ein">
             </div>
+            <div class="form-group">
+                <label for="poemAuthor">Autor:</label>
+                <input type="text" id="poemAuthor" placeholder="Gib den Namen des Autors ein">
+            </div>
             <button onclick="addLine()">Zeile hinzufügen</button>
             <button onclick="pausePoem()">Gedicht pausieren</button>
         </div>
@@ -117,12 +121,14 @@
 
         function addLine() {
             const line = document.getElementById('poemLine').value.trim();
-            if (!line) {
-                alert('Bitte gib eine Zeile ein.');
+            const author = document.getElementById('poemAuthor').value.trim();
+            if (!line || !author) {
+                alert('Bitte gib eine Zeile und den Autor ein.');
                 return;
             }
-            poems[currentPoemIndex].lines.push(line);
+            poems[currentPoemIndex].lines.push({ text: line, author });
             document.getElementById('poemLine').value = '';
+            document.getElementById('poemAuthor').value = '';
             displayPoems();
         }
 
@@ -150,7 +156,7 @@
                 poemDiv.className = 'poem-entry';
                 poemDiv.innerHTML = `
                     <h3>${poem.title} ${poem.completed ? '<span style="color: green;">(Abgeschlossen)</span>' : ''}</h3>
-                    <p>${poem.lines.join('<br>')}</p>
+                    <p>${poem.lines.map(line => `<strong>${line.author}:</strong> ${line.text}`).join('<br>')}</p>
                     ${!poem.completed ? `
                         <button onclick="editPoem(${index})">Weiter bearbeiten</button>
                         <button class="delete-button" onclick="deletePoem(${index})">Gedicht löschen</button>
@@ -174,7 +180,7 @@
                 alert('Keine abgeschlossenen Gedichte zum Exportieren vorhanden.');
                 return;
             }
-            let content = completedPoems.map(poem => `Titel: ${poem.title}\n${poem.lines.join('\n')}\n\n`).join('');
+            let content = completedPoems.map(poem => `Titel: ${poem.title}\n${poem.lines.map(line => `${line.author}: ${line.text}`).join('\n')}\n\n`).join('');
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -185,3 +191,4 @@
     </script>
 </body>
 </html>
+
