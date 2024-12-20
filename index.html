@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -67,6 +66,13 @@
         .hidden {
             display: none;
         }
+        .completed {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 5px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -126,7 +132,7 @@
                 alert('Bitte gib einen Titel ein.');
                 return;
             }
-            poems.push({ title, lines: [] });
+            poems.push({ title, lines: [], completed: false });
             document.getElementById('create-poem-section').classList.add('hidden');
             document.getElementById('form-container').classList.remove('hidden');
             document.getElementById('currentPoemTitle').innerText = title;
@@ -151,6 +157,8 @@
         }
 
         async function finishPoem() {
+            const currentPoem = poems[poems.length - 1];
+            currentPoem.completed = true;
             document.getElementById('form-container').classList.add('hidden');
             document.getElementById('create-poem-section').classList.remove('hidden');
             await savePoems();
@@ -159,9 +167,9 @@
 
         function displayPoemList() {
             const poemListDiv = document.getElementById('poemList');
-            poemListDiv.innerHTML = poems.map((poem, index) => `
+            poemListDiv.innerHTML = poems.map(poem => `
                 <div class="poem">
-                    <h3>${poem.title}</h3>
+                    <h3>${poem.title} ${poem.completed ? '<span class="completed">(Abgeschlossen)</span>' : ''}</h3>
                     ${poem.lines.map(line => `<p><strong>${line.author}:</strong> ${line.text}</p>`).join('')}
                 </div>
             `).join('');
